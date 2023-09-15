@@ -3,7 +3,6 @@ import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -12,8 +11,6 @@ import javafx.stage.Stage;
 
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Board extends Application {
     private static final int WIDTH = 600;
@@ -22,7 +19,7 @@ public class Board extends Application {
     private static final int POINT_RADIUS = 10;
     private Socket socket;
     private PrintWriter out;
-    private List<Coordinates> selectedPoints = new ArrayList<>();
+    private Coordinates firstPoint = null;
     private Pane backgroundPane; // Nuevo Pane para los puntos y las líneas
 
     public static void main(String[] args) {
@@ -59,8 +56,14 @@ public class Board extends Application {
                     @Override
                     public void handle(MouseEvent event) {
                         Coordinates coordinates = new Coordinates(finalCol + 1, finalRow + 1);
-                        sendCoordinatesToServer(coordinates, coordinates);
-                        handlePointSelection(coordinates);
+
+                        if (firstPoint == null) {
+                            firstPoint = coordinates;
+                        } else {
+                            sendCoordinatesToServer(firstPoint, coordinates);
+                            drawLineBetweenPoints(firstPoint, coordinates); // Dibujar la línea en el cliente
+                            firstPoint = null;
+                        }
                     }
                 });
 
@@ -68,33 +71,20 @@ public class Board extends Application {
             }
         }
 
-        Scene scene = new Scene(new GridPane(), WIDTH, HEIGHT); // Utilizar un GridPane vacío como contenedor
-        ((GridPane) scene.getRoot()).add(backgroundPane, 0, 0); // Agregar el nuevo Pane al contenedor
+        Scene scene = new Scene(backgroundPane, WIDTH, HEIGHT); // Utilizar el nuevo Pane como contenido
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    private void handlePointSelection(Coordinates coordinates) {
-        selectedPoints.add(coordinates);
-        if (selectedPoints.size() == 2) {
-            // Se han seleccionado dos puntos, dibujar una línea entre ellos
-            Coordinates start = selectedPoints.get(0);
-            Coordinates end = selectedPoints.get(1);
-            drawLineBetweenPoints(start, end);
-            selectedPoints.clear(); // Limpiar la lista para futuras selecciones
+    private void sendCoordinatesToServer(Coordinates coordinates1, Coordinates coordinates2) {
+        try {
+            Gson gson = new Gson();
+            String jsonCoordinates = gson.toJson(new CoordinatesPair(coordinates1, coordinates2));
+            out.println(jsonCoordinates);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
-
-    private void sendCoordinatesToServer(Coordinates coordinates1, Coordinates coordinates2) {
-    try {
-        Gson gson = new Gson();
-        CoordinatesPair coordinatesPair = new CoordinatesPair(coordinates1, coordinates2);
-        String jsonCoordinatesPair = gson.toJson(coordinatesPair);
-        out.println(jsonCoordinatesPair);
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-}
 
     private void drawLineBetweenPoints(Coordinates start, Coordinates end) {
         if (areAdjacent(start, end) && isVerticalOrHorizontal(start, end)) {
@@ -107,24 +97,26 @@ public class Board extends Application {
     
             line.setStroke(Color.BLUE);
             line.setStrokeWidth(2.0);
-            backgroundPane.getChildren().add(0, line); // Agregar la línea al principio del Pane
+    
+            // Agrega la línea en la posición 0 para que esté en la capa inferior
+            backgroundPane.getChildren().add(0, line);
         }
     }
-    
+
     // Función para verificar si dos puntos son adyacentes
     private boolean areAdjacent(Coordinates point1, Coordinates point2) {
         int dx = Math.abs(point1.getX() - point2.getX());
         int dy = Math.abs(point1.getY() - point2.getY());
-    
+
         // Dos puntos son adyacentes si su diferencia en coordenadas X o Y es igual a 1, pero no ambos
         return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
     }
-    
+
     // Función para verificar si la línea es vertical u horizontal
     private boolean isVerticalOrHorizontal(Coordinates start, Coordinates end) {
         int dx = Math.abs(start.getX() - end.getX());
         int dy = Math.abs(start.getY() - end.getY());
-    
+
         // La línea es vertical u horizontal si una de las diferencias es 0 y la otra es 1
         return (dx == 0 && dy == 1) || (dx == 1 && dy == 0);
     }

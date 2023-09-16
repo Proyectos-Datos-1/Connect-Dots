@@ -1,14 +1,13 @@
+import com.google.gson.Gson;
+
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
-import com.google.gson.Gson;
 
 public class Server {
     private static final int PORT = 12345;
-    private static List<LineInfo> lines = new ArrayList<>();
     private static List<ClientHandler> clients = new ArrayList<>();
-    private static Coordinates firstPoint = null;
 
     public static void main(String[] args) {
         ServerSocket serverSocket = null;
@@ -43,7 +42,6 @@ public class Server {
     private static class ClientHandler implements Runnable {
         private Socket clientSocket;
         private PrintWriter out;
-        private BufferedReader in;
 
         public ClientHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
@@ -52,7 +50,7 @@ public class Server {
         @Override
         public void run() {
             try {
-                in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 out = new PrintWriter(clientSocket.getOutputStream(), true);
 
                 String inputLine;
@@ -61,19 +59,10 @@ public class Server {
 
                     // Parsea las coordenadas recibidas desde el cliente
                     Gson gson = new Gson();
-                    Coordinates coordinates = gson.fromJson(inputLine, Coordinates.class);
+                    GameData data = gson.fromJson(inputLine, GameData.class);
 
-                    if (firstPoint == null) {
-                        firstPoint = coordinates;
-                    } else {
-                        // Agrega la nueva línea a la lista de líneas
-                        LineInfo newLine = new LineInfo(firstPoint, coordinates);
-                        lines.add(newLine);
-
-                        // Envía la lista de líneas actualizada a todos los clientes
-                        broadcastLineInfoToClients();
-                        firstPoint = null;
-                    }
+                    // Reenvía las coordenadas a todos los clientes
+                    sendToAllClients(inputLine);
                 }
 
                 clientSocket.close();
@@ -81,18 +70,17 @@ public class Server {
                 e.printStackTrace();
             }
         }
-    }
 
-    private static void broadcastLineInfoToClients() {
-        Gson gson = new Gson();
-        String jsonLines = gson.toJson(lines);
-
-        for (ClientHandler client : clients) {
-            try {
-                client.out.println(jsonLines);
-            } catch (Exception e) {
-                e.printStackTrace();
+        private void sendToAllClients(String message) {
+            for (ClientHandler client : clients) {
+                if (client != this) {
+                    client.sendMessage(message);
+                }
             }
+        }
+
+        private void sendMessage(String message) {
+            out.println(message);
         }
     }
 }

@@ -9,6 +9,7 @@ public class Server {
     private static final int PORT = 12345;
     private static List<ClientHandler> clients = new ArrayList<>();
     private static int nextClientId = 1;
+    private static int currentPlayerIndex = 0; // Índice del cliente actual
 
     // Define una lista de colores disponibles
     private static final String[] colors = {"blue", "red", "yellow", "purple"};
@@ -78,14 +79,18 @@ public class Server {
                         GameData start = GameData.createPointData(data.getStartX(), data.getStartY());
                         GameData end = GameData.createPointData(data.getEndX(), data.getEndY());
 
-                        if (areAdjacent(start, end) && isVerticalOrHorizontal(start, end)) {
+                        if (areAdjacent(start, end) && isVerticalOrHorizontal(start, end)
+                                && clientId == clients.get(currentPlayerIndex).clientId) {
                             // Establece el color del emisor y reenvía las coordenadas a todos los clientes
                             data.setColor(clientColor);
                             sendToAllClients(gson.toJson(data));
+
+                            // Pasa el turno al siguiente cliente
+                            currentPlayerIndex = (currentPlayerIndex + 1) % clients.size();
                         }
                     }
                 }
-                
+
                 clientSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -99,9 +104,7 @@ public class Server {
 
         private void sendToAllClients(String message) {
             for (ClientHandler client : clients) {
-                if (client != this) {
-                    client.sendMessage(message);
-                }
+                client.sendMessage(message);
             }
         }
 

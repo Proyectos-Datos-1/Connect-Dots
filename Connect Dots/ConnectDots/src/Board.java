@@ -88,7 +88,6 @@ public class Board extends Application {
                         } else {
                             GameData secondPoint = GameData.createPointData(finalCol + 1, finalRow + 1);
                             sendGameDataToServer(firstPoint, secondPoint);
-                            drawLineBetweenPoints(firstPoint, secondPoint, clientColor); // Reemplaza "Color" con el color asignado al cliente
                             firstPoint = null;
                         }
                     }
@@ -121,23 +120,7 @@ public class Board extends Application {
             e.printStackTrace();
         }
     }
-
-    private void drawLineBetweenPoints(GameData start, GameData end, String color) {
-        if (areAdjacent(start, end) && isVerticalOrHorizontal(start, end)) {
-            Line line = new Line(
-                start.getX() * 100 + 50,
-                start.getY() * 100 + 50,
-                end.getX() * 100 + 50,
-                end.getY() * 100 + 50
-            );
     
-            line.setStroke(Color.web(color)); // Utiliza el color especificado
-            line.setStrokeWidth(2.0);
-    
-            // Agrega la línea en la posición 0 para que esté en la capa inferior
-            backgroundPane.getChildren().add(0, line);
-        }
-    }    
 
     private void drawLineFromReceivedData(GameData receivedData) {
         int startX = receivedData.getStartX() * 100 + 50;
@@ -156,23 +139,6 @@ public class Board extends Application {
     }
 
 
-    // Función para verificar si dos puntos son adyacentes
-    private boolean areAdjacent(GameData point1, GameData point2) {
-        int dx = Math.abs(point1.getX() - point2.getX());
-        int dy = Math.abs(point1.getY() - point2.getY());
-
-        // Dos puntos son adyacentes si su diferencia en coordenadas X o Y es igual a 1, pero no ambos
-        return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
-    }
-
-    // Función para verificar si la línea es vertical u horizontal
-    private boolean isVerticalOrHorizontal(GameData start, GameData end) {
-        int dx = Math.abs(start.getX() - end.getX());
-        int dy = Math.abs(start.getY() - end.getY());
-
-        // La línea es vertical u horizontal si una de las diferencias es 0 y la otra es 1
-        return (dx == 0 && dy == 1) || (dx == 1 && dy == 0);
-    }
 
     public void stop() throws Exception {
         // Cierra la conexión con el servidor al detener la aplicación

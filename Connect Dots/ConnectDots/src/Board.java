@@ -26,6 +26,7 @@ public class Board extends Application {
     private GameData firstPoint = null;
     private Pane backgroundPane; // Nuevo Pane para los puntos y las líneas
     private BufferedReader in;
+    private String clientColor;
 
 
     public static void main(String[] args) {
@@ -54,6 +55,9 @@ public class Board extends Application {
                         GameData receivedData = gson.fromJson(inputLine, GameData.class);
                         if ("line".equals(receivedData.getType())) {
                             drawLineFromReceivedData(receivedData);
+                        }
+                        else if ("color".equals(receivedData.getType())) {
+                            clientColor = receivedData.getColor(); // Establecer el color del cliente
                         }
                         System.out.println("Coordenadas recibidas del servidor: " + inputLine);
                     }
@@ -84,7 +88,7 @@ public class Board extends Application {
                         } else {
                             GameData secondPoint = GameData.createPointData(finalCol + 1, finalRow + 1);
                             sendGameDataToServer(firstPoint, secondPoint);
-                            drawLineBetweenPoints(firstPoint, secondPoint); // Dibujar la línea en el cliente
+                            drawLineBetweenPoints(firstPoint, secondPoint, clientColor); // Reemplaza "Color" con el color asignado al cliente
                             firstPoint = null;
                         }
                     }
@@ -106,7 +110,8 @@ public class Board extends Application {
             // Crear un objeto GameData que represente una línea
             GameData lineData = GameData.createLineData(
                 gameData1.getX(), gameData1.getY(),
-                gameData2.getX(), gameData2.getY()
+                gameData2.getX(), gameData2.getY(),
+                "clientColor"
             );
 
             String jsonLineData = gson.toJson(lineData);
@@ -117,7 +122,7 @@ public class Board extends Application {
         }
     }
 
-    private void drawLineBetweenPoints(GameData start, GameData end) {
+    private void drawLineBetweenPoints(GameData start, GameData end, String color) {
         if (areAdjacent(start, end) && isVerticalOrHorizontal(start, end)) {
             Line line = new Line(
                 start.getX() * 100 + 50,
@@ -125,29 +130,30 @@ public class Board extends Application {
                 end.getX() * 100 + 50,
                 end.getY() * 100 + 50
             );
-
-            line.setStroke(Color.BLUE);
+    
+            line.setStroke(Color.web(color)); // Utiliza el color especificado
             line.setStrokeWidth(2.0);
-
+    
             // Agrega la línea en la posición 0 para que esté en la capa inferior
             backgroundPane.getChildren().add(0, line);
         }
-    }
+    }    
 
     private void drawLineFromReceivedData(GameData receivedData) {
-    int startX = receivedData.getStartX() * 100 + 50;
-    int startY = receivedData.getStartY() * 100 + 50;
-    int endX = receivedData.getEndX() * 100 + 50;
-    int endY = receivedData.getEndY() * 100 + 50;
+        int startX = receivedData.getStartX() * 100 + 50;
+        int startY = receivedData.getStartY() * 100 + 50;
+        int endX = receivedData.getEndX() * 100 + 50;
+        int endY = receivedData.getEndY() * 100 + 50;
 
-    Line line = new Line(startX, startY, endX, endY);
-    line.setStroke(Color.RED); // Puedes ajustar el color como desees
-    line.setStrokeWidth(2.0);
+        Line line = new Line(startX, startY, endX, endY);
+        String color = receivedData.getColor(); // Obtener el color de los datos
+        line.setStroke(Color.web(color)); // Utilizar el color especificado
+        line.setStrokeWidth(2.0);
 
-    Platform.runLater(() -> {
-        backgroundPane.getChildren().add(0, line);
-    });
-}
+        Platform.runLater(() -> {
+            backgroundPane.getChildren().add(0, line);
+        });
+    }
 
 
     // Función para verificar si dos puntos son adyacentes

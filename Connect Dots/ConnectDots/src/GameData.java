@@ -6,6 +6,7 @@ public class GameData {
     private int startY;
     private int endX;
     private int endY;
+    private String color; // Nueva propiedad de color
 
     public static GameData createPointData(int x, int y) {
         GameData data = new GameData();
@@ -15,13 +16,21 @@ public class GameData {
         return data;
     }
 
-    public static GameData createLineData(int startX, int startY, int endX, int endY) {
+    public static GameData createLineData(int startX, int startY, int endX, int endY, String color) {
         GameData data = new GameData();
         data.type = "line";
         data.startX = startX;
         data.startY = startY;
         data.endX = endX;
         data.endY = endY;
+        data.color = color; // Establece el color
+        return data;
+    }
+    
+    public static GameData createColorData(String color) {
+        GameData data = new GameData();
+        data.type = "color";
+        data.color = color;
         return data;
     }
 
@@ -51,5 +60,13 @@ public class GameData {
 
     public int getEndY() {
         return endY;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 }

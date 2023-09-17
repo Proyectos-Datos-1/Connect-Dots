@@ -6,15 +6,18 @@ import javafx.scene.Scene;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.stage.Stage;
+import javafx.scene.shape.Circle;
+
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Board extends Application {
     private static final int WIDTH = 600;
@@ -27,7 +30,7 @@ public class Board extends Application {
     private Pane backgroundPane; // Nuevo Pane para los puntos y las líneas
     private BufferedReader in;
     private String clientColor;
-
+    private List<List<Circle>> grid = new ArrayList<>();
 
     public static void main(String[] args) {
         launch(args);
@@ -55,8 +58,7 @@ public class Board extends Application {
                         GameData receivedData = gson.fromJson(inputLine, GameData.class);
                         if ("line".equals(receivedData.getType())) {
                             drawLineFromReceivedData(receivedData);
-                        }
-                        else if ("color".equals(receivedData.getType())) {
+                        } else if ("color".equals(receivedData.getType())) {
                             clientColor = receivedData.getColor(); // Establecer el color del cliente
                         }
                         System.out.println("Coordenadas recibidas del servidor: " + inputLine);
@@ -72,6 +74,7 @@ public class Board extends Application {
         }
 
         for (int row = 0; row < GRID_SIZE; row++) {
+            List<Circle> rowList = new ArrayList<>();
             for (int col = 0; col < GRID_SIZE; col++) {
                 Circle circle = new Circle(POINT_RADIUS);
                 circle.setFill(Color.BLACK);
@@ -93,8 +96,10 @@ public class Board extends Application {
                     }
                 });
 
+                rowList.add(circle);
                 backgroundPane.getChildren().add(circle); // Agregar el círculo al nuevo Pane
             }
+            grid.add(rowList);
         }
 
         Scene scene = new Scene(backgroundPane, WIDTH, HEIGHT); // Utilizar el nuevo Pane como contenido
@@ -108,9 +113,9 @@ public class Board extends Application {
 
             // Crear un objeto GameData que represente una línea
             GameData lineData = GameData.createLineData(
-                gameData1.getX(), gameData1.getY(),
-                gameData2.getX(), gameData2.getY(),
-                "clientColor"
+                    gameData1.getX(), gameData1.getY(),
+                    gameData2.getX(), gameData2.getY(),
+                    "clientColor"
             );
 
             String jsonLineData = gson.toJson(lineData);
@@ -120,7 +125,6 @@ public class Board extends Application {
             e.printStackTrace();
         }
     }
-    
 
     private void drawLineFromReceivedData(GameData receivedData) {
         int startX = receivedData.getStartX() * 100 + 50;
@@ -137,8 +141,6 @@ public class Board extends Application {
             backgroundPane.getChildren().add(0, line);
         });
     }
-
-
 
     public void stop() throws Exception {
         // Cierra la conexión con el servidor al detener la aplicación

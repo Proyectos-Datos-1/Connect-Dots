@@ -3,6 +3,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -42,6 +43,12 @@ public class Client extends Application {
         backgroundPane = new Pane(); // Crear el nuevo Pane
         backgroundPane.setPrefSize(WIDTH, HEIGHT); // Establecer el tamaño
 
+        // Agregar una etiqueta para mostrar el score del cliente
+        Label scoreLabel = new Label("Score: 0");
+        scoreLabel.setLayoutX(10);
+        scoreLabel.setLayoutY(10);
+        backgroundPane.getChildren().add(scoreLabel);
+
         String serverAddress = "localhost"; // Cambia esto a la dirección IP del servidor si es necesario
         int serverPort = 12345; // Puerto en el que el servidor está escuchando
 
@@ -60,8 +67,15 @@ public class Client extends Application {
                             drawLineFromReceivedData(receivedData);
                         } else if ("color".equals(receivedData.getType())) {
                             clientColor = receivedData.getColor(); // Establecer el color del cliente
+                        } else if ("score".equals(receivedData.getType())) {
+                            // Actualizar el score del cliente
+                            if (receivedData.getColor().equals(clientColor)) {
+                                int score = receivedData.getScore();
+                                Platform.runLater(() -> {
+                                    scoreLabel.setText("Score: " + score);
+                                });
+                            }
                         }
-                        
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

@@ -19,7 +19,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Board extends Application {
+public class Client extends Application {
     private static final int WIDTH = 600;
     private static final int HEIGHT = 600;
     private static final int GRID_SIZE = 4;
@@ -61,7 +61,7 @@ public class Board extends Application {
                         } else if ("color".equals(receivedData.getType())) {
                             clientColor = receivedData.getColor(); // Establecer el color del cliente
                         }
-                        System.out.println("Coordenadas recibidas del servidor: " + inputLine);
+                        
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

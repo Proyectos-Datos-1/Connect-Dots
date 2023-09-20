@@ -105,6 +105,9 @@ public class Server extends Application {
         private PrintWriter out;
         private int clientId;
         private String clientColor;
+        private int score = 0; // Agregar una variable para el puntaje
+        private List<GameData> drawnLines = new ArrayList<>(); // Lista de líneas existentes
+
 
         public ClientHandler(Socket clientSocket, int clientId, String clientColor) {
             this.clientSocket = clientSocket;
@@ -136,7 +139,10 @@ public class Server extends Application {
                             // Establece el color del emisor y reenvía las coordenadas a todos los clientes
                             data.setColor(clientColor);
                             sendToAllClients(gson.toJson(data));
-
+                            // Incrementar el score del cliente actual
+                            clients.get(currentPlayerIndex).incrementScore();
+                            sendScoreToClient();
+                            drawnLines.add(data);
                             // Pasa el turno al siguiente cliente
                             currentPlayerIndex = (currentPlayerIndex + 1) % clients.size();
                         }
@@ -153,6 +159,17 @@ public class Server extends Application {
             GameData colorData = GameData.createColorData(clientColor);
             sendMessage(new Gson().toJson(colorData));
         }
+
+        private void sendScoreToClient() {
+            for (ClientHandler client : clients) {
+                GameData scoreData = GameData.createScoreData(client.clientColor, client.score);
+                client.sendMessage(new Gson().toJson(scoreData));
+            }
+        }
+
+        public synchronized void incrementScore() {
+            score++;
+        }        
 
         private void sendToAllClients(String message) {
             for (ClientHandler client : clients) {

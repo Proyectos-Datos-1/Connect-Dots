@@ -7,6 +7,8 @@ public class GameData {
     private int endX;
     private int endY;
     private String color; // Nueva propiedad de color
+    private int score; // Nueva propiedad de puntuación
+
 
     public static GameData createPointData(int x, int y) {
         GameData data = new GameData();
@@ -31,6 +33,14 @@ public class GameData {
         GameData data = new GameData();
         data.type = "color";
         data.color = color;
+        return data;
+    }
+
+    public static GameData createScoreData(String color, int score) {
+        GameData data = new GameData();
+        data.type = "score";
+        data.color = color;
+        data.score = score;
         return data;
     }
 
@@ -68,5 +78,13 @@ public class GameData {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
     }
 }

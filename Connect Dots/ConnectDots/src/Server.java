@@ -5,7 +5,14 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Server {
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+public class Server extends Application {
     private static final int PORT = 12345;
     private static List<ClientHandler> clients = new ArrayList<>();
     private static int nextClientId = 1;
@@ -13,39 +20,84 @@ public class Server {
 
     // Define una lista de colores disponibles
     private static final String[] colors = {"blue", "red", "yellow", "purple"};
+    private static ServerSocket serverSocket;
+    private static boolean serverRunning = false;
 
     public static void main(String[] args) {
-        ServerSocket serverSocket = null;
+        launch(args);
+    }
 
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Server GUI");
+
+        Button startServerButton = new Button("Iniciar Servidor");
+        startServerButton.setOnAction(e -> startServer());
+
+        Button stopServerButton = new Button("Cerrar Servidor");
+        stopServerButton.setOnAction(e -> stopServer());
+
+        Button openClientButton = new Button("Abrir Cliente");
+        openClientButton.setOnAction(e -> openClient());
+
+        VBox vbox = new VBox(10);
+        vbox.getChildren().addAll(startServerButton, stopServerButton, openClientButton);
+        vbox.setPrefSize(200, 200);
+        vbox.setAlignment(javafx.geometry.Pos.CENTER);
+
+        Scene scene = new Scene(vbox);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    private void startServer() {
+        if (!serverRunning) {
+            Thread serverThread = new Thread(() -> {
+                try {
+                    serverSocket = new ServerSocket(PORT);
+                    serverRunning = true;
+                    Platform.runLater(() -> System.out.println("Servidor listo para recibir conexiones..."));
+
+                    while (serverRunning) {
+                        Socket clientSocket = serverSocket.accept();
+                        Platform.runLater(() -> System.out.println("Cliente conectado desde " + clientSocket.getInetAddress()));
+
+                        // Asigna un color único al cliente
+                        String clientColor = colors[nextClientId - 1];
+                        int clientId = nextClientId++;
+                        ClientHandler clientHandler = new ClientHandler(clientSocket, clientId, clientColor);
+
+                        clients.add(clientHandler);
+                        Thread clientThread = new Thread(clientHandler);
+                        clientThread.start();
+                        clientHandler.sendColorToClient(); // Enviar el color al cliente
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+            serverThread.start();
+        }
+    }
+
+    private void stopServer() {
+        serverRunning = false;
         try {
-            serverSocket = new ServerSocket(PORT);
-            System.out.println("Servidor listo para recibir conexiones...");
-
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Cliente conectado desde " + clientSocket.getInetAddress());
-
-                // Asigna un color único al cliente
-                String clientColor = colors[nextClientId - 1];
-                int clientId = nextClientId++;
-                ClientHandler clientHandler = new ClientHandler(clientSocket, clientId, clientColor);
-
-                clients.add(clientHandler);
-                Thread clientThread = new Thread(clientHandler);
-                clientThread.start();
-                clientHandler.sendColorToClient(); // Enviar el color al cliente
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+                Platform.runLater(() -> System.out.println("Servidor cerrado."));
+                // Puedes agregar aquí cualquier otra lógica de limpieza necesaria antes de cerrar el servidor.
             }
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                if (serverSocket != null) {
-                    serverSocket.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
+    }
+
+    private void openClient() {
+        // Aquí puedes iniciar la instancia de la clase Client
+        Client client = new Client();
+        Stage clientStage = new Stage();
+        client.start(clientStage);
     }
 
     private static class ClientHandler implements Runnable {

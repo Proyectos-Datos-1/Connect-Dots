@@ -153,37 +153,21 @@ public class Client extends Application {
 
     private void handleSerialData(byte receivedByte) {
         Platform.runLater(() -> {
-            switch (receivedByte) {
-                case 0: // Mover hacia arriba
-                    if (playerRow > 0) {
-                        playerRow--;
-                        updatePlayerPosition();
-                    }
-                    break;
-                case 1: // Mover hacia abajo
-                    if (playerRow < GRID_SIZE - 1) {
-                        playerRow++;
-                        updatePlayerPosition();
-                    }
-                    break;
-                case 2: // Mover hacia la izquierda
-                    if (playerCol > 0) {
-                        playerCol--;
-                        updatePlayerPosition();
-                    }
-                    break;
-                case 3: // Mover hacia la derecha
-                    if (playerCol < GRID_SIZE - 1) {
-                        playerCol++;
-                        updatePlayerPosition();
-                    }
-                    break;
-                case 4: // Seleccionar un punto
-                    selectPoint(playerCol, playerRow);
-                    break;
-                default:
-                    // Acción no reconocida
-                    break;
+            String receivedChar = String.valueOf((char) receivedByte);
+            if (receivedChar.equals("B") && playerRow > 0) {
+                playerRow--;
+                updatePlayerPosition();
+            } else if (receivedChar.equals("G") && playerRow < GRID_SIZE - 1) {
+                playerRow++;
+                updatePlayerPosition();
+            } else if (receivedChar.equals("A") && playerCol > 0) {
+                playerCol--;
+                updatePlayerPosition();
+            } else if (receivedChar.equals("F") && playerCol < GRID_SIZE - 1) {
+                playerCol++;
+                updatePlayerPosition();
+            } else if (receivedChar.equals("J")) { 
+                selectPoint(playerCol, playerRow);
             }
         });
     }

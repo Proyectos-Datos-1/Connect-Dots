@@ -80,6 +80,7 @@ public class Server extends Application {
         }
     }
 
+
     private void stopServer() {
         serverRunning = false;
         try {

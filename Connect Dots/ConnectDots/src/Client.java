@@ -1,15 +1,17 @@
 import com.google.gson.Gson;
+
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 import javafx.scene.shape.Circle;
+import javafx.scene.input.KeyCode; // Importar KeyCode para el manejo de teclas
+
+import com.fazecast.jSerialComm.*;
 
 
 import java.io.BufferedReader;
@@ -19,6 +21,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class Client extends Application {
     private static final int WIDTH = 600;
@@ -32,6 +35,11 @@ public class Client extends Application {
     private BufferedReader in;
     private String clientColor;
     private List<List<Circle>> grid = new ArrayList<>();
+    private int playerRow = 0;
+    private int playerCol = 0;
+    private Scene scene; // Declara la variable scene como una variable de instancia
+    private SerialPort serialPort; // Variable miembro para la comunicación serial
+
 
     public static void main(String[] args) {
         launch(args);
@@ -42,6 +50,8 @@ public class Client extends Application {
 
         backgroundPane = new Pane(); // Crear el nuevo Pane
         backgroundPane.setPrefSize(WIDTH, HEIGHT); // Establecer el tamaño
+        scene = new Scene(backgroundPane, WIDTH, HEIGHT);
+
 
         // Agregar una etiqueta para mostrar el score del cliente
         Label scoreLabel = new Label("Score: 0");
@@ -86,7 +96,25 @@ public class Client extends Application {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        // Configurar y abrir el puerto serial
+        serialPort = SerialPort.getCommPort("COM3"); // Reemplaza "COMx" con el nombre de tu puerto serial
+        serialPort.openPort();
 
+        // Configurar el lector de datos serial en un hilo
+        Thread serialReaderThread = new Thread(() -> {
+            while (true) {
+                byte[] data = new byte[1];
+                int bytesRead = serialPort.readBytes(data, data.length);
+                if (bytesRead > 0) {
+                    byte receivedByte = data[0];
+                    // Interpreta el byte recibido y realiza acciones en la aplicación
+                    handleSerialData(receivedByte);
+                }
+            }
+        });
+
+        serialReaderThread.start();
+        
         for (int row = 0; row < GRID_SIZE; row++) {
             List<Circle> rowList = new ArrayList<>();
             for (int col = 0; col < GRID_SIZE; col++) {
@@ -95,18 +123,22 @@ public class Client extends Application {
                 circle.setCenterX((col + 1) * 100 + 50); // Posición X del punto
                 circle.setCenterY((row + 1) * 100 + 50); // Posición Y del punto
 
-                final int finalRow = row;
-                final int finalCol = col;
-                circle.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent event) {
-                        if (firstPoint == null) {
-                            firstPoint = GameData.createPointData(finalCol + 1, finalRow + 1);
-                        } else {
-                            GameData secondPoint = GameData.createPointData(finalCol + 1, finalRow + 1);
-                            sendGameDataToServer(firstPoint, secondPoint);
-                            firstPoint = null;
-                        }
+
+                scene.setOnKeyPressed(event -> {
+                    if (event.getCode() == KeyCode.W && playerRow > 0) {
+                        playerRow--;
+                        updatePlayerPosition();
+                    } else if (event.getCode() == KeyCode.S && playerRow < GRID_SIZE - 1) {
+                        playerRow++;
+                        updatePlayerPosition();
+                    } else if (event.getCode() == KeyCode.A && playerCol > 0) {
+                        playerCol--;
+                        updatePlayerPosition();
+                    } else if (event.getCode() == KeyCode.D && playerCol < GRID_SIZE - 1) {
+                        playerCol++;
+                        updatePlayerPosition();
+                    } else if (event.getCode() == KeyCode.SPACE) {
+                        selectPoint(playerCol, playerRow);
                     }
                 });
 
@@ -115,10 +147,73 @@ public class Client extends Application {
             }
             grid.add(rowList);
         }
-
-        Scene scene = new Scene(backgroundPane, WIDTH, HEIGHT); // Utilizar el nuevo Pane como contenido
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private void handleSerialData(byte receivedByte) {
+        Platform.runLater(() -> {
+            switch (receivedByte) {
+                case 0: // Mover hacia arriba
+                    if (playerRow > 0) {
+                        playerRow--;
+                        updatePlayerPosition();
+                    }
+                    break;
+                case 1: // Mover hacia abajo
+                    if (playerRow < GRID_SIZE - 1) {
+                        playerRow++;
+                        updatePlayerPosition();
+                    }
+                    break;
+                case 2: // Mover hacia la izquierda
+                    if (playerCol > 0) {
+                        playerCol--;
+                        updatePlayerPosition();
+                    }
+                    break;
+                case 3: // Mover hacia la derecha
+                    if (playerCol < GRID_SIZE - 1) {
+                        playerCol++;
+                        updatePlayerPosition();
+                    }
+                    break;
+                case 4: // Seleccionar un punto
+                    selectPoint(playerCol, playerRow);
+                    break;
+                default:
+                    // Acción no reconocida
+                    break;
+            }
+        });
+    }
+    
+    
+    private void updatePlayerPosition() {
+        // Actualiza la posición visual del jugador en la cuadrícula
+        for (int row = 0; row < GRID_SIZE; row++) {
+            for (int col = 0; col < GRID_SIZE; col++) {
+                Circle circle = grid.get(row).get(col);
+                if (row == playerRow && col == playerCol) {
+                    // Cambia el color del punto en la ubicación actual
+                    circle.setFill(Color.web(clientColor));
+                } else {
+                    // Restablece el color de los demás puntos a negro
+                    circle.setFill(Color.BLACK);
+                }
+            }
+        }
+    }
+
+    private void selectPoint(int col, int row) {
+        // Maneja la selección de un punto
+        if (firstPoint == null) {
+            firstPoint = GameData.createPointData(col + 1, row + 1);
+        } else {
+            GameData secondPoint = GameData.createPointData(col + 1, row + 1);
+            sendGameDataToServer(firstPoint, secondPoint);
+            firstPoint = null;
+        }
     }
 
     private void sendGameDataToServer(GameData gameData1, GameData gameData2) {
@@ -160,6 +255,9 @@ public class Client extends Application {
         // Cierra la conexión con el servidor al detener la aplicación
         if (socket != null) {
             socket.close();
+        }
+        if (serialPort != null) {
+            serialPort.closePort();
         }
     }
 }

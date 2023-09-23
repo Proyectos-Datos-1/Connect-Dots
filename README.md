@@ -18,6 +18,6 @@
 
 
 Links:
-Proyecto en Jira: https://nathalia08.atlassian.net/jira/software/projects/KAN/boards/1/timeline .
-Documentacion externa: https://www.overleaf.com/project/64e975fac61c0a1775f345dc .
-HTML generado: file:///C:/Users/boyfa/OneDrive/Documentos/Connect%20Dots/html/annotated.html .
+1. Proyecto en Jira: https://nathalia08.atlassian.net/jira/software/projects/KAN/boards/1/timeline 
+2. Documentacion externa: https://www.overleaf.com/project/64e975fac61c0a1775f345dc 
+3. HTML generado: file:///C:/Users/boyfa/OneDrive/Documentos/Connect%20Dots/html/annotated.html 

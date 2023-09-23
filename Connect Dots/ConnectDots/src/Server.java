@@ -27,6 +27,10 @@ public class Server extends Application {
     private static ServerSocket serverSocket; // Socket del servidor
     private static boolean serverRunning = false; // Indica si el servidor está en ejecución
 
+    
+    /** 
+     * @param args
+     */
     public static void main(String[] args) {
         launch(args);
     }

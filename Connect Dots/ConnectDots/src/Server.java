@@ -1,55 +1,62 @@
+/**
+ * @author Fabricio Mena, Joseph Murillo, Nathalia Ocampo
+ */
 import com.google.gson.Gson;
-
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
-
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
+/**
+ * Esta clase representa el servidor del juego "Connect Dots". Administra la conexión con los clientes,
+ * asigna colores únicos a los clientes, maneja el inicio y cierre del servidor, y gestiona la lógica del juego.
+ */
 public class Server extends Application {
-    private static final int PORT = 12345;
-    private static List<ClientHandler> clients = new ArrayList<>();
-    private static int nextClientId = 1;
-    private static int currentPlayerIndex = 0; // Índice del cliente actual
+    private static final int PORT = 12345; // Puerto de conexión del servidor
+    private static List<ClientHandler> clients = new ArrayList<>(); // Lista de manejadores de clientes conectados
+    private static int nextClientId = 1; // ID del próximo cliente
+    private static int currentPlayerIndex = 0; // Índice del cliente actual en el juego
 
-    // Define una lista de colores disponibles
+    // Define una lista de colores disponibles para asignar a los clientes
     private static final String[] colors = {"blue", "red", "yellow", "purple"};
-    private static ServerSocket serverSocket;
-    private static boolean serverRunning = false;
+    private static ServerSocket serverSocket; // Socket del servidor
+    private static boolean serverRunning = false; // Indica si el servidor está en ejecución
 
     public static void main(String[] args) {
         launch(args);
     }
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) { // Creacion de la interfaz grafica
         primaryStage.setTitle("Server GUI");
 
-        Button startServerButton = new Button("Iniciar Servidor");
+        Button startServerButton = new Button("Iniciar Servidor"); // Se crea el boton para iniciar el servidor
         startServerButton.setOnAction(e -> startServer());
 
-        Button stopServerButton = new Button("Cerrar Servidor");
+        Button stopServerButton = new Button("Cerrar Servidor"); // Se crea el boton para cerrar el servidor
         stopServerButton.setOnAction(e -> stopServer());
 
-        Button openClientButton = new Button("Abrir Cliente");
+        Button openClientButton = new Button("Abrir Cliente"); // Se crea el boton para abrir clientes
         openClientButton.setOnAction(e -> openClient());
 
-        VBox vbox = new VBox(10);
-        vbox.getChildren().addAll(startServerButton, stopServerButton, openClientButton);
+        VBox vbox = new VBox(10); // Distancia entre botones
+        vbox.getChildren().addAll(startServerButton, stopServerButton, openClientButton); // Se agregan los botones a la escena
         vbox.setPrefSize(200, 200);
         vbox.setAlignment(javafx.geometry.Pos.CENTER);
 
-        Scene scene = new Scene(vbox);
-        primaryStage.setScene(scene);
+        Scene scene = new Scene(vbox); // Se crean las cajitas de los botones
+        primaryStage.setScene(scene); // Se crea la ventana
         primaryStage.show();
     }
 
+    /**
+     * Inicia el servidor para aceptar conexiones de clientes.
+     */
     private void startServer() {
         if (!serverRunning) {
             Thread serverThread = new Thread(() -> {
@@ -62,15 +69,15 @@ public class Server extends Application {
                         Socket clientSocket = serverSocket.accept();
                         Platform.runLater(() -> System.out.println("Cliente conectado desde " + clientSocket.getInetAddress()));
 
-                        // Asigna un color único al cliente
-                        String clientColor = colors[nextClientId - 1];
-                        int clientId = nextClientId++;
+                        // Asigna un color único al cliente y crea un manejador de cliente
+                        String clientColor = colors[nextClientId - 1]; // Se le asigna el color de la lista al cliente que se conecta
+                        int clientId = nextClientId++; // Se incrementa el valor para indicar que se cambia de cliente
                         ClientHandler clientHandler = new ClientHandler(clientSocket, clientId, clientColor);
 
                         clients.add(clientHandler);
-                        Thread clientThread = new Thread(clientHandler);
+                        Thread clientThread = new Thread(clientHandler); // Inicia nuevo hilo por cliente que se conecta
                         clientThread.start();
-                        clientHandler.sendColorToClient(); // Enviar el color al cliente
+                        clientHandler.sendColorToClient(); // Enviar el color al cliente recién conectado
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -80,35 +87,42 @@ public class Server extends Application {
         }
     }
 
-
+    /**
+     * Detiene el servidor y cierra la conexión con todos los clientes.
+     */
     private void stopServer() {
         serverRunning = false;
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
                 Platform.runLater(() -> System.out.println("Servidor cerrado."));
-                // Puedes agregar aquí cualquier otra lógica de limpieza necesaria antes de cerrar el servidor.
+                // Se puede agregar aquí cualquier otra lógica de limpieza necesaria antes de cerrar el servidor.
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Abre una instancia del cliente.
+     */
     private void openClient() {
-        // Aquí puedes iniciar la instancia de la clase Client
+        // Iniciar la instancia de la clase Client
         Client client = new Client();
         Stage clientStage = new Stage();
         client.start(clientStage);
     }
 
+    /**
+     * Clase interna que maneja la comunicación con un cliente.
+     */
     private static class ClientHandler implements Runnable {
-        private Socket clientSocket;
-        private PrintWriter out;
-        private int clientId;
-        private String clientColor;
-        private int score = 0; // Agregar una variable para el puntaje
-        private List<GameData> drawnLines = new ArrayList<>(); // Lista de líneas existentes
-
+        private Socket clientSocket; // Socket de comunicacion con el cliente
+        private PrintWriter out; // Envia mensajes al cliente
+        private int clientId; // Identificador para cada cliente
+        private String clientColor; // Color asignado a cada cliente
+        private int score = 0; // Puntuación del cliente
+        private List<GameData> drawnLines = new ArrayList<>(); // Lista de líneas dibujadas por el cliente
 
         public ClientHandler(Socket clientSocket, int clientId, String clientColor) {
             this.clientSocket = clientSocket;
@@ -130,7 +144,7 @@ public class Server extends Application {
                     Gson gson = new Gson();
                     GameData data = gson.fromJson(inputLine, GameData.class);
 
-                    // Realiza las verificaciones de adyacencia y orientación
+                    // Realiza verificaciones de adyacencia y orientación para las líneas
                     if ("line".equals(data.getType())) {
                         GameData start = GameData.createPointData(data.getStartX(), data.getStartY());
                         GameData end = GameData.createPointData(data.getEndX(), data.getEndY());
@@ -140,7 +154,7 @@ public class Server extends Application {
                             // Establece el color del emisor y reenvía las coordenadas a todos los clientes
                             data.setColor(clientColor);
                             sendToAllClients(gson.toJson(data));
-                            // Incrementar el score del cliente actual
+                            // Incrementa el puntaje del cliente actual
                             clients.get(currentPlayerIndex).incrementScore();
                             sendScoreToClient();
                             drawnLines.add(data);
@@ -156,11 +170,17 @@ public class Server extends Application {
             }
         }
 
+        /**
+         * Envía el color asignado al cliente recién conectado.
+         */
         private void sendColorToClient() {
             GameData colorData = GameData.createColorData(clientColor);
             sendMessage(new Gson().toJson(colorData));
         }
 
+        /**
+         * Envía la puntuación del cliente a todos los clientes.
+         */
         private void sendScoreToClient() {
             for (ClientHandler client : clients) {
                 GameData scoreData = GameData.createScoreData(client.clientColor, client.score);
@@ -168,22 +188,33 @@ public class Server extends Application {
             }
         }
 
+        /**
+         * Incrementa la puntuación del cliente.
+         */
         public synchronized void incrementScore() {
             score++;
-        }        
+        }
 
+        /**
+         * Envía un mensaje a todos los clientes.
+         */
         private void sendToAllClients(String message) {
             for (ClientHandler client : clients) {
                 client.sendMessage(message);
             }
         }
 
+        /**
+         * Envía un mensaje al cliente.
+         */
         private void sendMessage(String message) {
             out.println(message);
         }
     }
 
-    // Función para verificar si dos puntos son adyacentes
+    /**
+     * Función para verificar si dos puntos son adyacentes.
+     */
     private static boolean areAdjacent(GameData point1, GameData point2) {
         int dx = Math.abs(point1.getX() - point2.getX());
         int dy = Math.abs(point1.getY() - point2.getY());
@@ -192,7 +223,9 @@ public class Server extends Application {
         return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
     }
 
-    // Función para verificar si la línea es vertical u horizontal
+    /**
+     * Función para verificar si la línea es vertical u horizontal.
+     */
     private static boolean isVerticalOrHorizontal(GameData start, GameData end) {
         int dx = Math.abs(start.getX() - end.getX());
         int dy = Math.abs(start.getY() - end.getY());

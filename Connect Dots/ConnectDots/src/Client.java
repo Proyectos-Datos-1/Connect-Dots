@@ -1,5 +1,7 @@
 /**
  * @author Fabricio Mena, Joseph Murillo, Nathalia Ocampo
+ * Esta clase implementa un cliente para el juego "Connect Dots". El cliente se comunica con un servidor
+ * para dibujar líneas entre puntos en una cuadrícula y registrar puntajes.
  */
 import com.google.gson.Gson;
 import javafx.application.Application;

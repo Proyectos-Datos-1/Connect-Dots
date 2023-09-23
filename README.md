@@ -4,7 +4,8 @@
 *    Curso: Datos 1                                        *
 *    Proyecto 1 # Connect-Dots                             *
 *    Profesor: Leonardo Andres Araya Martinez              *
-*    Estudiantes: Fabricio Mena Mejia                      *
+*    Estudiantes:                                          *
+*                 Fabricio Mena Mejia                      *
 *                 Joseph Murillo                           *
 *                 Nathalia Ocampo                          *
 ************************************************************

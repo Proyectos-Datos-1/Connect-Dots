@@ -1,7 +1,8 @@
 /**
- * @author Fabricio Mena, Joseph Murillo, Nathalia Ocampo
  * Esta clase implementa un cliente para el juego "Connect Dots". El cliente se comunica con un servidor
  * para dibujar líneas entre puntos en una cuadrícula y registrar puntajes.
+ * 
+ * @author Fabricio Mena, Joseph Murillo, Nathalia Ocampo
  */
 import com.google.gson.Gson;
 import javafx.application.Application;
@@ -47,6 +48,8 @@ public class Client extends Application {
 
     /**
      * Método principal de la aplicación.
+     * 
+     * @param args Los argumentos de la línea de comandos (no se utilizan en este caso).
      */
     public static void main(String[] args) {
         launch(args);
@@ -54,6 +57,8 @@ public class Client extends Application {
 
     /**
      * Inicializa la interfaz gráfica y establece la conexión con el servidor.
+     * 
+     * @param primaryStage El escenario principal de la aplicación.
      */
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Connect Dots Game");
@@ -164,6 +169,8 @@ public class Client extends Application {
 
     /**
      * Maneja los datos recibidos desde el puerto serial y actualiza la posición del jugador.
+     * 
+     * @param receivedByte El byte recibido desde el puerto serial.
      */
     private void handleSerialData(byte receivedByte) {
         Platform.runLater(() -> {
@@ -204,6 +211,9 @@ public class Client extends Application {
 
     /**
      * Maneja la selección de un punto en la cuadrícula.
+     * 
+     * @param col La columna del punto seleccionado.
+     * @param row La fila del punto seleccionado.
      */
     private void selectPoint(int col, int row) {
         if (firstPoint == null) {
@@ -217,6 +227,9 @@ public class Client extends Application {
 
     /**
      * Envía datos de juego al servidor, como la selección de puntos y líneas dibujadas.
+     * 
+     * @param gameData1 Los datos del primer punto.
+     * @param gameData2 Los datos del segundo punto.
      */
     private void sendGameDataToServer(GameData gameData1, GameData gameData2) {
         try {
@@ -235,6 +248,8 @@ public class Client extends Application {
 
     /**
      * Dibuja una línea en el juego basada en los datos recibidos del servidor.
+     * 
+     * @param receivedData Los datos de la línea recibidos del servidor.
      */
     private void drawLineFromReceivedData(GameData receivedData) { // Multiplica por 100+50 para ajustar la linea a la posicion del punto
         int startX = receivedData.getStartX() * 100 + 50;

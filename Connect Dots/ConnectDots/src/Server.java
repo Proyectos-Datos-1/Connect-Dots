@@ -128,6 +128,13 @@ public class Server extends Application {
         private int score = 0; // Puntuación del cliente
         private List<GameData> drawnLines = new ArrayList<>(); // Lista de líneas dibujadas por el cliente
 
+        /**
+         * Constructor de ClientHandler.
+         *
+         * @param clientSocket Socket de comunicación con el cliente.
+         * @param clientId     Identificador único del cliente.
+         * @param clientColor  Color asignado al cliente.
+         */
         public ClientHandler(Socket clientSocket, int clientId, String clientColor) {
             this.clientSocket = clientSocket;
             this.clientId = clientId;
@@ -201,6 +208,8 @@ public class Server extends Application {
 
         /**
          * Envía un mensaje a todos los clientes.
+         *
+         * @param message Mensaje a enviar a todos los clientes.
          */
         private void sendToAllClients(String message) {
             for (ClientHandler client : clients) {
@@ -210,6 +219,8 @@ public class Server extends Application {
 
         /**
          * Envía un mensaje al cliente.
+         *
+         * @param message Mensaje a enviar al cliente.
          */
         private void sendMessage(String message) {
             out.println(message);
@@ -218,6 +229,10 @@ public class Server extends Application {
 
     /**
      * Función para verificar si dos puntos son adyacentes.
+     *
+     * @param point1 Primer punto.
+     * @param point2 Segundo punto.
+     * @return true si los puntos son adyacentes, false en caso contrario.
      */
     private static boolean areAdjacent(GameData point1, GameData point2) {
         int dx = Math.abs(point1.getX() - point2.getX());
@@ -229,6 +244,10 @@ public class Server extends Application {
 
     /**
      * Función para verificar si la línea es vertical u horizontal.
+     *
+     * @param start Punto de inicio de la línea.
+     * @param end   Punto de fin de la línea.
+     * @return true si la línea es vertical u horizontal, false en caso contrario.
      */
     private static boolean isVerticalOrHorizontal(GameData start, GameData end) {
         int dx = Math.abs(start.getX() - end.getX());

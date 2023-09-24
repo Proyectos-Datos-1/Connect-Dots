@@ -1,4 +1,5 @@
 /**
+ * @author Fabricio Mena, Joseph Murillo, Nathalia Ocampo
  * Código para el manejo de botones y detección de cambios de estado.
  * Este programa detecta cambios de estado en varios botones y envía
  * caracteres a través de la comunicación serial cuando se presionan

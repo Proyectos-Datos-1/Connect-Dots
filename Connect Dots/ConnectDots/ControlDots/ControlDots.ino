@@ -1,16 +1,29 @@
+/**
+ * Código para el manejo de botones y detección de cambios de estado.
+ * Este programa detecta cambios de estado en varios botones y envía
+ * caracteres a través de la comunicación serial cuando se presionan
+ * los botones.
+ */
+
+// Pines de los botones
 const int botonAPin = 7;  // Pin del botón A
 const int botonBPin = 6;  // Pin del botón B
 const int botonGPin = 9;  // Pin del botón G
 const int botonFPin = 8;  // Pin del botón F
-const int botonJPin = 5; // Pin del botón del Joystick
+const int botonJPin = 5;  // Pin del botón del Joystick
 
 // Variables para el debounce
 int estadoAnteriorBotonA = LOW;
 int estadoAnteriorBotonB = LOW;
 int estadoAnteriorBotonG = LOW;
 int estadoAnteriorBotonF = LOW;
-int estadoAnteriorBotonJ= LOW;
+int estadoAnteriorBotonJ = LOW;
 
+/**
+ * Configuración inicial del programa.
+ * Se configuran los pines de los botones como entradas y se inicia
+ * la comunicación serial a una velocidad de 9600 baudios.
+ */
 void setup() {
   // Configurar los pines de los botones como entradas
   pinMode(botonAPin, INPUT);
@@ -23,6 +36,11 @@ void setup() {
   Serial.begin(9600);
 }
 
+/**
+ * Función principal del programa.
+ * Se detectan cambios de estado en los botones y se envían caracteres
+ * a través de la comunicación serial cuando se presionan los botones.
+ */
 void loop() {
   int estadoBotonA = digitalRead(botonAPin);
   int estadoBotonB = digitalRead(botonBPin);
@@ -66,7 +84,7 @@ void loop() {
     }
   }
   
-  // Actualizar el estado anterior
+  // Actualizar el estado anterior de los botones
   estadoAnteriorBotonA = estadoBotonA;
   estadoAnteriorBotonB = estadoBotonB;
   estadoAnteriorBotonG = estadoBotonG;
@@ -76,4 +94,3 @@ void loop() {
   // Pequeño retardo para evitar lecturas múltiples en una sola pulsación
   delay(100);
 }
-

@@ -78,6 +78,21 @@ public class GameData {
         return data;
     }
 
+    @Override
+    public String toString() {
+        if ("point".equals(type)) {
+            return "Point: (" + x + ", " + y + ")";
+        } else if ("line".equals(type)) {
+            return "Line: (" + startX + ", " + startY + ") to (" + endX + ", " + endY + "), Color: " + color;
+        } else if ("color".equals(type)) {
+            return "Color: " + color;
+        } else if ("score".equals(type)) {
+            return "Score: Color: " + color + ", Score: " + score;
+        } else {
+            return "Unknown Data Type";
+        }
+    }
+
     /**
      * Obtiene el tipo de datos.
      *

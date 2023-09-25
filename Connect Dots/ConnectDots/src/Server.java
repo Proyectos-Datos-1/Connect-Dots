@@ -26,6 +26,7 @@ public class Server extends Application {
     private static final String[] colors = {"blue", "red", "yellow", "purple"};
     private static ServerSocket serverSocket; // Socket del servidor
     private static boolean serverRunning = false; // Indica si el servidor está en ejecución
+    private static List<GameData> drawnLines = new ArrayList<>();
 
     
     /** 
@@ -126,7 +127,6 @@ public class Server extends Application {
         private int clientId; // Identificador para cada cliente
         private String clientColor; // Color asignado a cada cliente
         private int score = 0; // Puntuación del cliente
-        private List<GameData> drawnLines = new ArrayList<>(); // Lista de líneas dibujadas por el cliente
 
         /**
          * Constructor de ClientHandler.
@@ -134,12 +134,19 @@ public class Server extends Application {
          * @param clientSocket Socket de comunicación con el cliente.
          * @param clientId     Identificador único del cliente.
          * @param clientColor  Color asignado al cliente.
+         * @param out          Texto de salida.
          */
         public ClientHandler(Socket clientSocket, int clientId, String clientColor) {
-            this.clientSocket = clientSocket;
-            this.clientId = clientId;
-            this.clientColor = clientColor;
+            try {
+                this.clientSocket = clientSocket;
+                this.clientId = clientId;
+                this.clientColor = clientColor;
+                this.out = new PrintWriter(clientSocket.getOutputStream(), true); // Inicializa el PrintWriter
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+        
 
         @Override
         public void run() {
@@ -149,8 +156,6 @@ public class Server extends Application {
 
                 String inputLine;
                 while ((inputLine = in.readLine()) != null) {
-                    System.out.println("Coordenadas recibidas del cliente " + clientId + ": " + inputLine);
-
                     // Parsea las coordenadas recibidas desde el cliente
                     Gson gson = new Gson();
                     GameData data = gson.fromJson(inputLine, GameData.class);
@@ -165,12 +170,33 @@ public class Server extends Application {
                             // Establece el color del emisor y reenvía las coordenadas a todos los clientes
                             data.setColor(clientColor);
                             sendToAllClients(gson.toJson(data));
-                            // Incrementa el puntaje del cliente actual
-                            clients.get(currentPlayerIndex).incrementScore();
-                            sendScoreToClient();
-                            drawnLines.add(data);
+
+                            // Verificar si ya existe una línea en las mismas coordenadas
+                            boolean coordinatesOccupied = false;
+                            synchronized (drawnLines) {
+                                for (GameData line : drawnLines) {
+                                    System.out.println(line);
+                                    if ("line".equals(line.getType()) && isLineOverlapping(data, line)) {
+                                        coordinatesOccupied = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Si las coordenadas están ocupadas, no se permite dibujar la línea
+                            if (coordinatesOccupied) {
+                                System.out.println("El cliente " + clientId + " no puede dibujar una línea en coordenadas ocupadas.");
+                            } else {
+                                // Agregar la línea a la lista drawnLines compartida
+                                synchronized (drawnLines) {
+                                    drawnLines.add(data);
+                                    // Incrementa el puntaje del cliente actual
+                                    clients.get(currentPlayerIndex).incrementScore();
+                                    sendScoreToClient();
+                                }
                             // Pasa el turno al siguiente cliente
                             currentPlayerIndex = (currentPlayerIndex + 1) % clients.size();
+                        }
                         }
                     }
                 }
@@ -180,6 +206,15 @@ public class Server extends Application {
                 e.printStackTrace();
             }
         }
+        // Método para verificar si dos líneas se superponen completamente en espacio
+        private boolean isLineOverlapping(GameData newLine, GameData existingLine) {
+            // Verificar si las líneas tienen los mismos puntos de inicio y fin
+            return (newLine.getStartX() == existingLine.getStartX() && newLine.getStartY() == existingLine.getStartY() &&
+                    newLine.getEndX() == existingLine.getEndX() && newLine.getEndY() == existingLine.getEndY()) ||
+                (newLine.getStartX() == existingLine.getEndX() && newLine.getStartY() == existingLine.getEndY() &&
+                    newLine.getEndX() == existingLine.getStartX() && newLine.getEndY() == existingLine.getStartY());
+        }
+        
 
         /**
          * Envía el color asignado al cliente recién conectado.

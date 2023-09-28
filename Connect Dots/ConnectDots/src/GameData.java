@@ -49,6 +49,17 @@ public class GameData {
         data.color = color;
         return data;
     }
+    public GameData() {
+        // Constructor por defecto vacío
+    }
+    public GameData(String type, int startX, int startY, int endX, int endY, String color) {
+        this.type = type;
+        this.startX = startX;
+        this.startY = startY;
+        this.endX = endX;
+        this.endY = endY;
+        this.color = color;
+    }
 
     /**
      * Crea y devuelve un objeto GameData que representa un color en el juego.
@@ -78,6 +89,26 @@ public class GameData {
         return data;
     }
 
+    /**
+     * Crea y devuelve un objeto GameData que representa un cuadrado en el juego.
+     *
+     * @param x     Coordenada X del punto superior izquierdo del cuadrado.
+     * @param y     Coordenada Y del punto superior izquierdo del cuadrado.
+     * @return Objeto GameData que representa un cuadrado.
+     */
+    public static GameData createSquareData(int x, int y) {
+        GameData data = new GameData();
+        data.type = "square";
+        data.x = x;
+        data.y = y;
+        return data;
+    }
+
+    /**
+     * Crea y devuelve un String GameData que representa una linea.
+     * 
+     * @return String GameData indicando coordenadas y color de la linea.
+     */
     @Override
     public String toString() {
         if ("point".equals(type)) {

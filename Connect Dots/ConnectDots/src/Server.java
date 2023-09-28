@@ -5,13 +5,18 @@ import com.google.gson.Gson;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+
+
+
 /**
  * Esta clase representa el servidor del juego "Connect Dots". Administra la conexión con los clientes,
  * asigna colores únicos a los clientes, maneja el inicio y cierre del servidor, y gestiona la lógica del juego.
@@ -26,7 +31,10 @@ public class Server extends Application {
     private static final String[] colors = {"blue", "red", "yellow", "purple"};
     private static ServerSocket serverSocket; // Socket del servidor
     private static boolean serverRunning = false; // Indica si el servidor está en ejecución
-    private static List<GameData> drawnLines = new ArrayList<>();
+    private static List<GameData> drawnLines = new ArrayList<>(); // Lista global de lineas dibujadas
+    private static javafx.scene.control.Label resultLabel;
+    private static List<Stage> clientStages = new ArrayList<>();
+
 
     
     /** 
@@ -43,21 +51,28 @@ public class Server extends Application {
         Button startServerButton = new Button("Iniciar Servidor"); // Se crea el boton para iniciar el servidor
         startServerButton.setOnAction(e -> startServer());
 
-        Button stopServerButton = new Button("Cerrar Servidor"); // Se crea el boton para cerrar el servidor
-        stopServerButton.setOnAction(e -> stopServer());
+        
 
         Button openClientButton = new Button("Abrir Cliente"); // Se crea el boton para abrir clientes
         openClientButton.setOnAction(e -> openClient());
 
+        Button restartButton = new Button("Reiniciar"); // Se crea el boton para reiniciar partida
+        restartButton.setOnAction(e -> restartServer());
+
         VBox vbox = new VBox(10); // Distancia entre botones
-        vbox.getChildren().addAll(startServerButton, stopServerButton, openClientButton); // Se agregan los botones a la escena
+        vbox.getChildren().addAll(startServerButton, openClientButton, restartButton);
         vbox.setPrefSize(200, 200);
         vbox.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(vbox); // Se crean las cajitas de los botones
         primaryStage.setScene(scene); // Se crea la ventana
         primaryStage.show();
+
+        // Etiqueta de resultLabel
+        resultLabel = new Label("");
+        vbox.getChildren().add(resultLabel);
     }
+    
 
     /**
      * Inicia el servidor para aceptar conexiones de clientes.
@@ -93,6 +108,46 @@ public class Server extends Application {
     }
 
     /**
+     * Cierra y vuelve a abrir el servidor, y cierra los clientes.
+     */
+    private void restartServer() {
+        // Cerrar las ventanas de los clientes
+        for (Stage clientStage : clientStages) {
+            clientStage.close();
+        }
+        
+        // Detener el servidor
+        stopServer();
+    
+        // Cerrar los clientes
+        for (ClientHandler client : clients) {
+            try {
+                client.clientSocket.close(); // Cerrar el socket del cliente
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    
+        // Limpiar la lista de clientes y la lista de líneas dibujadas
+        clients.clear();
+        drawnLines.clear();
+
+        // Restablecer el índice del siguiente jugador
+        nextClientId = 1;
+
+    
+        // Restablecer el índice del jugador actual
+        currentPlayerIndex = 0;
+    
+        // Actualizar la etiqueta de resultados a vacío
+        resultLabel.setText("");
+    
+        // Iniciar el servidor nuevamente
+        startServer();
+    }
+    
+    
+    /**
      * Detiene el servidor y cierra la conexión con todos los clientes.
      */
     private void stopServer() {
@@ -107,6 +162,7 @@ public class Server extends Application {
             e.printStackTrace();
         }
     }
+    
 
     /**
      * Abre una instancia del cliente.
@@ -116,6 +172,9 @@ public class Server extends Application {
         Client client = new Client();
         Stage clientStage = new Stage();
         client.start(clientStage);
+
+        // Agregar la ventana del cliente a la lista
+        clientStages.add(clientStage);
     }
 
     /**
@@ -175,7 +234,7 @@ public class Server extends Application {
                             boolean coordinatesOccupied = false;
                             synchronized (drawnLines) {
                                 for (GameData line : drawnLines) {
-                                    System.out.println(line);
+                                    
                                     if ("line".equals(line.getType()) && isLineOverlapping(data, line)) {
                                         coordinatesOccupied = true;
                                         break;
@@ -190,16 +249,19 @@ public class Server extends Application {
                                 // Agregar la línea a la lista drawnLines compartida
                                 synchronized (drawnLines) {
                                     drawnLines.add(data);
-                                    // Incrementa el puntaje del cliente actual
-                                    clients.get(currentPlayerIndex).incrementScore();
-                                    sendScoreToClient();
+                                    System.out.println(data);
+                                    checkForSquare();
+                                    // Si se lleno la cuadricula de lineas, devuelve puntuaciones
+                                    if(drawnLines.size()==24){
+                                        showResults(); // Llama al método para mostrar los resultados
+                                    }
                                 }
                             // Pasa el turno al siguiente cliente
                             currentPlayerIndex = (currentPlayerIndex + 1) % clients.size();
                         }
-                        }
                     }
                 }
+            }
 
                 clientSocket.close();
             } catch (IOException e) {
@@ -215,6 +277,137 @@ public class Server extends Application {
                     newLine.getEndX() == existingLine.getStartX() && newLine.getEndY() == existingLine.getStartY());
         }
         
+        private List<GameData> foundSquares = new ArrayList<>();
+
+        /**
+         * Verifica si se han formado cuadrados en la malla de puntos.
+         *
+         * @return true si se han formado cuadrados, false en caso contrario.
+         */
+        private boolean checkForSquare() {
+            boolean squareFound = false; // Variable para rastrear si se ha encontrado un cuadrado en este ciclo
+
+            // Coordenadas de los puntos de la malla (columna 1, fila 1) hasta (columna 4, fila 4)
+            for (int row = 1; row <= 3; row++) {
+                for (int col = 1; col <= 3; col++) {
+                    // Verificar si los puntos forman un cuadrado
+                    if (isSquare(row, col)) {
+                        // Verifica si el cuadrado ya ha sido encontrado previamente
+                        boolean squareAlreadyFound = false;
+                        for (GameData square : foundSquares) {
+                            if (areEqualSquares(square, row, col)) {
+                                squareAlreadyFound = true;
+                                break;
+                            }
+                        }
+
+                        if (!squareAlreadyFound) {
+                            foundSquares.add(GameData.createSquareData(row, col)); // Agrega el cuadrado a la lista de cuadrados encontrados
+                            squareFound = true; // Marca que se ha encontrado un cuadrado en este ciclo
+                            clients.get(currentPlayerIndex).incrementScore();
+                            sendScoreToClient();
+                        }
+                    }
+                }
+            }
+            if (squareFound) {
+                squareFound = false; // Si se encontró un cuadrado, restablece squareFound a false
+            }
+            return squareFound; // Devuelve true si se encontró al menos un cuadrado en este ciclo
+        }
+
+        /**
+         * Verifica si dos cuadrados son iguales.
+         *
+         * @param squareData Los datos del cuadrado a comparar.
+         * @param row        La fila del punto superior izquierdo del cuadrado.
+         * @param col        La columna del punto superior izquierdo del cuadrado.
+         * @return true si los cuadrados son iguales, false en caso contrario.
+         */
+        private boolean areEqualSquares(GameData squareData, int row, int col) {
+            return squareData.getStartX() == col && squareData.getStartY() == row;
+        }
+                
+
+        /**
+         * Verifica si los puntos en las coordenadas (row, col) forman un cuadrado.
+         *
+         * @param row La fila del punto superior izquierdo del cuadrado.
+         * @param col La columna del punto superior izquierdo del cuadrado.
+         * @return true si los puntos forman un cuadrado, false en caso contrario.
+         */
+        private boolean isSquare(int row, int col) {
+            // Verificar si los cuatro lados del cuadrado están formados por líneas
+            return hasLine(row, col, row, col + 1) &&
+                hasLine(row, col, row + 1, col) &&
+                hasLine(row, col + 1, row + 1, col + 1) &&
+                hasLine(row + 1, col, row + 1, col + 1);
+        }
+
+        /**
+         * Verifica si hay una línea entre dos puntos en la malla.
+         *
+         * @param row1 Fila del primer punto.
+         * @param col1 Columna del primer punto.
+         * @param row2 Fila del segundo punto.
+         * @param col2 Columna del segundo punto.
+         * @return true si hay una línea entre los dos puntos, false en caso contrario.
+         */
+        private boolean hasLine(int row1, int col1, int row2, int col2) {
+            // Recorre todas las líneas dibujadas para buscar una línea entre los puntos dados
+            for (GameData line : drawnLines) {
+                if ("line".equals(line.getType())) {
+                    int startX = line.getStartX();
+                    int startY = line.getStartY();
+                    int endX = line.getEndX();
+                    int endY = line.getEndY();
+
+                    // Verifica si la línea conecta los puntos (row1, col1) y (row2, col2)
+                    if ((startX == col1 && startY == row1 && endX == col2 && endY == row2) ||
+                        (startX == col2 && startY == row2 && endX == col1 && endY == row1)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Agrega los score finales a la interfaz.
+         */
+        private void showResults() {
+            // Ordena los clientes por puntuación
+            clients.sort(Comparator.comparingInt(ClientHandler::getScore).reversed());
+
+            // Crea un mensaje con los resultados
+            StringBuilder message = new StringBuilder("Resultados:\n");
+            for (int i = 0; i < clients.size(); i++) {
+                ClientHandler client = clients.get(i);
+                message.append("Puesto ").append(i + 1).append(": Cliente ").append(client.getClientId()).append(" - Puntuación ").append(client.getScore()).append("\n");
+            }
+
+            // Actualiza la etiqueta en la interfaz gráfica
+            Platform.runLater(() -> resultLabel.setText(message.toString()));
+        }
+
+        /**
+         * Obtiene el score.
+         *
+         * @return score del cliente.
+         */
+        public int getScore() {
+            return score;
+        }
+
+        /**
+         * Obtiene cliente actual.
+         *
+         * @return Numero de cliente.
+         */
+        public int getClientId() {
+            return clientId;
+        }
+
 
         /**
          * Envía el color asignado al cliente recién conectado.

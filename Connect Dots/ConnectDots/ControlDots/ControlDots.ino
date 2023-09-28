@@ -14,11 +14,11 @@ const int botonFPin = 8;  // Pin del botón F
 const int botonJPin = 5;  // Pin del botón del Joystick
 
 // Variables para el debounce
-int estadoAnteriorBotonA = LOW;
-int estadoAnteriorBotonB = LOW;
-int estadoAnteriorBotonG = LOW;
-int estadoAnteriorBotonF = LOW;
-int estadoAnteriorBotonJ = LOW;
+int estadoAnteriorBotonA = HIGH;
+int estadoAnteriorBotonB = HIGH;
+int estadoAnteriorBotonG = HIGH;
+int estadoAnteriorBotonF = HIGH;
+int estadoAnteriorBotonJ = HIGH;
 
 /**
  * Configuración inicial del programa.

@@ -71,7 +71,7 @@ public class Server extends Application {
 
         VBox vbox = new VBox(10); // Distancia entre botones
         vbox.getChildren().addAll(startServerButton, restartButton, choiceBox, startGameButton);
-        vbox.setPrefSize(200, 200);
+        vbox.setPrefSize(300, 350);
         vbox.setAlignment(javafx.geometry.Pos.CENTER);
 
         Scene scene = new Scene(vbox); // Se crean las cajitas de los botones
@@ -346,7 +346,7 @@ public class Server extends Application {
                         boolean squareAlreadyFound = false;
                         // Verifica si ya se detecto el cuadrado
                         for (GameData square : foundSquares) {
-                            if (square != null && areEqualSquares(square, row, col)) {
+                            if (square != null && areEqualSquares(square, row, col) && square.getColor().equals(clientColor)) {
                                 squareAlreadyFound = true; // Si es cuadrado viejo
                                 break;
                             }

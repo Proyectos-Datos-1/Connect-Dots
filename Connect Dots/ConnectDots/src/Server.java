@@ -56,24 +56,21 @@ public class Server extends Application {
         choiceBox.setOnAction(e -> {
             int numClients = choiceBox.getValue();
             clients = new ClientHandler[numClients];
+            openClients(numClients); // Llama al método para abrir la cantidad de clientes seleccionados
         });
-
-        // Crear el botón para mostrar el arreglo de clientes
-        Button showClientsButton = new Button("Mostrar Clientes");
-        showClientsButton.setOnAction(e -> {
-            for (ClientHandler client : clients) {
-                System.out.println(client);
-            }
+        // Crear el botón para iniciar el juego
+        Button startGameButton = new Button("Iniciar Juego");
+        startGameButton.setOnAction(e -> {
+            int numClients = choiceBox.getValue();
+            startGame(numClients); // Llama al método para iniciar el juego con la cantidad de clientes seleccionados
         });
-
-        Button openClientButton = new Button("Abrir Cliente"); // Se crea el boton para abrir clientes
-        openClientButton.setOnAction(e -> openClient());
+        
 
         Button restartButton = new Button("Reiniciar"); // Se crea el boton para reiniciar partida
         restartButton.setOnAction(e -> restartServer());
 
         VBox vbox = new VBox(10); // Distancia entre botones
-        vbox.getChildren().addAll(startServerButton, openClientButton, restartButton,choiceBox, showClientsButton);
+        vbox.getChildren().addAll(startServerButton, restartButton, choiceBox, startGameButton);
         vbox.setPrefSize(200, 200);
         vbox.setAlignment(javafx.geometry.Pos.CENTER);
 
@@ -189,19 +186,29 @@ public class Server extends Application {
     
 
     /**
-     * Abre una instancia del cliente.
+     * Abre la cantidad de clientes seleccionados.
+     *
+     * @param numClients Cantidad de clientes a abrir.
      */
-    private void openClient() {
-        // Iniciar la instancia de la clase Client
-        Client client = new Client();
-        for (int i = 0; i < clientStages.length; i++) {
-            if (clientStages[i] == null) {
-                Stage clientStage = new Stage();
-                client.start(clientStage);
-                clientStages[i] = clientStage;
-                break;
-            }
+    private void openClients(int numClients) {
+        for (int i = 0; i < numClients; i++) {
+            Client client = new Client();
+            Stage clientStage = new Stage();
+            client.start(clientStage);
+            clientStages[i] = clientStage;
         }
+    }
+
+    /**
+     * Inicia el juego con la cantidad de clientes seleccionados.
+     *
+     * @param numClients Cantidad de clientes para iniciar el juego.
+     */
+    private void startGame(int numClients) {
+        // Abrir la cantidad de clientes seleccionados
+        openClients(numClients);
+        // Iniciar el servidor
+        startServer();
     }
 
     /**

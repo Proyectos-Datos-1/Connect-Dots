@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Client extends Application {
 
@@ -40,7 +38,7 @@ public class Client extends Application {
     private Pane backgroundPane; // Pane que contiene puntos y líneas
     private BufferedReader in; // Lector para recibir datos del servidor
     private String clientColor; // Color asignado al cliente
-    private List<List<Circle>> grid = new ArrayList<>(); // Representación de la cuadrícula de puntos
+    private Circle[][] grid = new Circle[GRID_SIZE][GRID_SIZE]; // Representación de la cuadrícula de puntos
     private int playerRow = 0; // Fila actual del jugador en la cuadrícula
     private int playerCol = 0; // Columna actual del jugador en la cuadrícula
     private Scene scene; // Escena del juego
@@ -131,7 +129,6 @@ public class Client extends Application {
 
         // Crear la cuadrícula de puntos
         for (int row = 0; row < GRID_SIZE; row++) {
-            List<Circle> rowList = new ArrayList<>();
             for (int col = 0; col < GRID_SIZE; col++) {
                 Circle circle = new Circle(POINT_RADIUS);
                 circle.setFill(Color.BLACK);
@@ -157,10 +154,9 @@ public class Client extends Application {
                     }
                 });
 
-                rowList.add(circle);
+                grid[row][col] = circle;
                 backgroundPane.getChildren().add(circle);
             }
-            grid.add(rowList);
         }
 
         primaryStage.setScene(scene); // Volver a mostrar la malla de puntos para que no las sobreescriba la linea
@@ -199,7 +195,7 @@ public class Client extends Application {
     private void updatePlayerPosition() {
         for (int row = 0; row < GRID_SIZE; row++) {
             for (int col = 0; col < GRID_SIZE; col++) {
-                Circle circle = grid.get(row).get(col);
+                Circle circle = grid[row][col];
                 if (row == playerRow && col == playerCol) {
                     circle.setFill(Color.web(clientColor)); // Indicador de color del cliente que se mueve
                 } else {

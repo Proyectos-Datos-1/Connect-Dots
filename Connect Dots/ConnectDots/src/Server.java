@@ -4,13 +4,12 @@
 import com.google.gson.Gson;
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -23,7 +22,7 @@ import javafx.stage.Stage;
  */
 public class Server extends Application {
     private static final int PORT = 12345; // Puerto de conexión del servidor
-    private static List<ClientHandler> clients = new ArrayList<>(); // Lista de manejadores de clientes conectados
+    private static ClientHandler[] clients = new ClientHandler[2]; // Lista de manejadores de clientes conectados
     private static int nextClientId = 1; // ID del próximo cliente
     private static int currentPlayerIndex = 0; // Índice del cliente actual en el juego
 
@@ -31,10 +30,9 @@ public class Server extends Application {
     private static final String[] colors = {"blue", "red", "yellow", "purple"};
     private static ServerSocket serverSocket; // Socket del servidor
     private static boolean serverRunning = false; // Indica si el servidor está en ejecución
-    private static List<GameData> drawnLines = new ArrayList<>(); // Lista global de lineas dibujadas
+    private static GameData[] drawnLines = new GameData[100]; // Lista global de líneas dibujadas
     private static javafx.scene.control.Label resultLabel;
-    private static List<Stage> clientStages = new ArrayList<>();
-
+    private static Stage[] clientStages = new Stage[100]; // Lista de ventanas de clientes
 
     
     /** 
@@ -51,7 +49,22 @@ public class Server extends Application {
         Button startServerButton = new Button("Iniciar Servidor"); // Se crea el boton para iniciar el servidor
         startServerButton.setOnAction(e -> startServer());
 
-        
+        // Crear el ChoiceBox para seleccionar el número de clientes
+        ChoiceBox<Integer> choiceBox = new ChoiceBox<>();
+        choiceBox.getItems().addAll(1, 2, 3, 4);
+        choiceBox.setValue(2); // Valor predeterminado
+        choiceBox.setOnAction(e -> {
+            int numClients = choiceBox.getValue();
+            clients = new ClientHandler[numClients];
+        });
+
+        // Crear el botón para mostrar el arreglo de clientes
+        Button showClientsButton = new Button("Mostrar Clientes");
+        showClientsButton.setOnAction(e -> {
+            for (ClientHandler client : clients) {
+                System.out.println(client);
+            }
+        });
 
         Button openClientButton = new Button("Abrir Cliente"); // Se crea el boton para abrir clientes
         openClientButton.setOnAction(e -> openClient());
@@ -60,7 +73,7 @@ public class Server extends Application {
         restartButton.setOnAction(e -> restartServer());
 
         VBox vbox = new VBox(10); // Distancia entre botones
-        vbox.getChildren().addAll(startServerButton, openClientButton, restartButton);
+        vbox.getChildren().addAll(startServerButton, openClientButton, restartButton,choiceBox, showClientsButton);
         vbox.setPrefSize(200, 200);
         vbox.setAlignment(javafx.geometry.Pos.CENTER);
 
@@ -94,7 +107,12 @@ public class Server extends Application {
                         int clientId = nextClientId++; // Se incrementa el valor para indicar que se cambia de cliente
                         ClientHandler clientHandler = new ClientHandler(clientSocket, clientId, clientColor);
 
-                        clients.add(clientHandler);
+                        for (int i = 0; i < clients.length; i++) {
+                            if (clients[i] == null) {
+                                clients[i] = clientHandler;
+                                break;
+                            }
+                        }
                         Thread clientThread = new Thread(clientHandler); // Inicia nuevo hilo por cliente que se conecta
                         clientThread.start();
                         clientHandler.sendColorToClient(); // Enviar el color al cliente recién conectado
@@ -113,7 +131,9 @@ public class Server extends Application {
     private void restartServer() {
         // Cerrar las ventanas de los clientes
         for (Stage clientStage : clientStages) {
-            clientStage.close();
+            if (clientStage != null) {
+                clientStage.close();
+            }
         }
         
         // Detener el servidor
@@ -129,8 +149,12 @@ public class Server extends Application {
         }
     
         // Limpiar la lista de clientes y la lista de líneas dibujadas
-        clients.clear();
-        drawnLines.clear();
+        for (int i = 0; i < clients.length; i++) {
+            clients[i] = null;
+        }
+        for (int i = 0; i < drawnLines.length; i++) {
+            drawnLines[i] = null;
+        }
 
         // Restablecer el índice del siguiente jugador
         nextClientId = 1;
@@ -170,11 +194,14 @@ public class Server extends Application {
     private void openClient() {
         // Iniciar la instancia de la clase Client
         Client client = new Client();
-        Stage clientStage = new Stage();
-        client.start(clientStage);
-
-        // Agregar la ventana del cliente a la lista
-        clientStages.add(clientStage);
+        for (int i = 0; i < clientStages.length; i++) {
+            if (clientStages[i] == null) {
+                Stage clientStage = new Stage();
+                client.start(clientStage);
+                clientStages[i] = clientStage;
+                break;
+            }
+        }
     }
 
     /**
@@ -225,7 +252,7 @@ public class Server extends Application {
                         GameData end = GameData.createPointData(data.getEndX(), data.getEndY());
 
                         if (areAdjacent(start, end) && isVerticalOrHorizontal(start, end)
-                                && clientId == clients.get(currentPlayerIndex).clientId) {
+                                && clients[currentPlayerIndex] != null && clientId == clients[currentPlayerIndex].clientId) {
                             // Establece el color del emisor y reenvía las coordenadas a todos los clientes
                             data.setColor(clientColor);
                             sendToAllClients(gson.toJson(data));
@@ -233,9 +260,8 @@ public class Server extends Application {
                             // Verificar si ya existe una línea en las mismas coordenadas
                             boolean coordinatesOccupied = false;
                             synchronized (drawnLines) {
-                                for (GameData line : drawnLines) {
-                                    
-                                    if ("line".equals(line.getType()) && isLineOverlapping(data, line)) {
+                                for (int i = 0; i < drawnLines.length; i++) {
+                                    if (drawnLines[i] != null && "line".equals(drawnLines[i].getType()) && isLineOverlapping(data, drawnLines[i])) {
                                         coordinatesOccupied = true;
                                         break;
                                     }
@@ -248,20 +274,33 @@ public class Server extends Application {
                             } else {
                                 // Agregar la línea a la lista drawnLines compartida
                                 synchronized (drawnLines) {
-                                    drawnLines.add(data);
-                                    System.out.println(data);
+                                    for (int i = 0; i < drawnLines.length; i++) {
+                                        if (drawnLines[i] == null) {
+                                            drawnLines[i] = data;
+                                            break;
+                                        }
+                                    }
                                     checkForSquare();
                                     // Si se lleno la cuadricula de lineas, devuelve puntuaciones
-                                    if(drawnLines.size()==24){
+                                    int count = 0;
+                                    for (GameData line : drawnLines) {
+                                        if (line != null) {
+                                            count++;
+                                        }
+                                    }
+
+                                    if (count == 24) {
                                         showResults(); // Llama al método para mostrar los resultados
                                     }
                                 }
-                            // Pasa el turno al siguiente cliente
-                            currentPlayerIndex = (currentPlayerIndex + 1) % clients.size();
+                                
+                            }
                         }
+                        // Pasa el turno al siguiente cliente
+                        currentPlayerIndex = (currentPlayerIndex + 1) % clients.length;
                     }
                 }
-            }
+
 
                 clientSocket.close();
             } catch (IOException e) {
@@ -277,7 +316,7 @@ public class Server extends Application {
                     newLine.getEndX() == existingLine.getStartX() && newLine.getEndY() == existingLine.getStartY());
         }
         
-        private List<GameData> foundSquares = new ArrayList<>();
+        private GameData[] foundSquares = new GameData[100]; // Lista de cuadrados encontrados
 
         /**
          * Verifica si se han formado cuadrados en la malla de puntos.
@@ -285,35 +324,36 @@ public class Server extends Application {
          * @return true si se han formado cuadrados, false en caso contrario.
          */
         private boolean checkForSquare() {
-            boolean squareFound = false; // Variable para rastrear si se ha encontrado un cuadrado en este ciclo
-
-            // Coordenadas de los puntos de la malla (columna 1, fila 1) hasta (columna 4, fila 4)
+            boolean squareFound = false;
+            // Verifica si es cuadrado nuevo o viejo
             for (int row = 1; row <= 3; row++) {
                 for (int col = 1; col <= 3; col++) {
-                    // Verificar si los puntos forman un cuadrado
                     if (isSquare(row, col)) {
-                        // Verifica si el cuadrado ya ha sido encontrado previamente
                         boolean squareAlreadyFound = false;
+                        // Verifica si ya se detecto el cuadrado
                         for (GameData square : foundSquares) {
-                            if (areEqualSquares(square, row, col)) {
-                                squareAlreadyFound = true;
+                            if (square != null && areEqualSquares(square, row, col)) {
+                                squareAlreadyFound = true; // Si es cuadrado viejo
                                 break;
                             }
                         }
-
+                        // Si se encuentra un cuadrado nuevo
                         if (!squareAlreadyFound) {
-                            foundSquares.add(GameData.createSquareData(row, col)); // Agrega el cuadrado a la lista de cuadrados encontrados
-                            squareFound = true; // Marca que se ha encontrado un cuadrado en este ciclo
-                            clients.get(currentPlayerIndex).incrementScore();
-                            sendScoreToClient();
+                            for (int i = 0; i < foundSquares.length; i++) {
+                                if (foundSquares[i] == null) {
+                                    foundSquares[i] = GameData.createSquareData(row, col);
+                                    squareFound = true;
+                                    clients[currentPlayerIndex].incrementScore(); // Aumenta el score
+                                    sendScoreToClient(); // Envia el score a todos los clientes
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
             }
-            if (squareFound) {
-                squareFound = false; // Si se encontró un cuadrado, restablece squareFound a false
-            }
-            return squareFound; // Devuelve true si se encontró al menos un cuadrado en este ciclo
+        
+            return squareFound;
         }
 
         /**
@@ -354,15 +394,12 @@ public class Server extends Application {
          * @return true si hay una línea entre los dos puntos, false en caso contrario.
          */
         private boolean hasLine(int row1, int col1, int row2, int col2) {
-            // Recorre todas las líneas dibujadas para buscar una línea entre los puntos dados
             for (GameData line : drawnLines) {
-                if ("line".equals(line.getType())) {
+                if (line != null && "line".equals(line.getType())) { // Agregar verificación para line no sea null
                     int startX = line.getStartX();
                     int startY = line.getStartY();
                     int endX = line.getEndX();
                     int endY = line.getEndY();
-
-                    // Verifica si la línea conecta los puntos (row1, col1) y (row2, col2)
                     if ((startX == col1 && startY == row1 && endX == col2 && endY == row2) ||
                         (startX == col2 && startY == row2 && endX == col1 && endY == row1)) {
                         return true;
@@ -376,19 +413,28 @@ public class Server extends Application {
          * Agrega los score finales a la interfaz.
          */
         private void showResults() {
-            // Ordena los clientes por puntuación
-            clients.sort(Comparator.comparingInt(ClientHandler::getScore).reversed());
-
+            // Ordena el arreglo de clientes por puntuación
+            for (int i = 0; i < clients.length - 1; i++) {
+                for (int j = i + 1; j < clients.length; j++) {
+                    if (clients[i] != null && clients[j] != null) {
+                        if (clients[i].getScore() < clients[j].getScore()) {
+                            ClientHandler temp = clients[i];
+                            clients[i] = clients[j];
+                            clients[j] = temp;
+                        }
+                    }
+                }
+            }
             // Crea un mensaje con los resultados
             StringBuilder message = new StringBuilder("Resultados:\n");
-            for (int i = 0; i < clients.size(); i++) {
-                ClientHandler client = clients.get(i);
-                message.append("Puesto ").append(i + 1).append(": Cliente ").append(client.getClientId()).append(" - Puntuación ").append(client.getScore()).append("\n");
+            for (int i = 0; i < clients.length; i++) {
+                if (clients[i] != null) {
+                    message.append("Puesto ").append(i + 1).append(": Cliente ").append(clients[i].getClientId()).append(" - Puntuación ").append(clients[i].getScore()).append("\n");
+                }
             }
-
             // Actualiza la etiqueta en la interfaz gráfica
             Platform.runLater(() -> resultLabel.setText(message.toString()));
-        }
+        } 
 
         /**
          * Obtiene el score.
@@ -422,8 +468,10 @@ public class Server extends Application {
          */
         private void sendScoreToClient() {
             for (ClientHandler client : clients) {
-                GameData scoreData = GameData.createScoreData(client.clientColor, client.score);
-                client.sendMessage(new Gson().toJson(scoreData));
+                if (client != null) {
+                    GameData scoreData = GameData.createScoreData(client.clientColor, client.score);
+                    client.sendMessage(new Gson().toJson(scoreData));
+                }
             }
         }
 
@@ -441,7 +489,9 @@ public class Server extends Application {
          */
         private void sendToAllClients(String message) {
             for (ClientHandler client : clients) {
-                client.sendMessage(message);
+                if (client != null) {
+                    client.sendMessage(message);
+                }
             }
         }
 

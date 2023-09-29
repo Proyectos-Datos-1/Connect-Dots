@@ -233,7 +233,9 @@ public class Server extends Application {
             }
         }
         
-
+        /**
+         * Realiza todas la verificaciones sobre lineas y cuadrados.
+         */
         @Override
         public void run() {
             try {
@@ -307,7 +309,12 @@ public class Server extends Application {
                 e.printStackTrace();
             }
         }
-        // Método para verificar si dos líneas se superponen completamente en espacio
+
+        /**
+         * Verifica si dos líneas se superponen completamente en espacio.
+         *
+         * @return true si se superponen las lineas.
+         */
         private boolean isLineOverlapping(GameData newLine, GameData existingLine) {
             // Verificar si las líneas tienen los mismos puntos de inicio y fin
             return (newLine.getStartX() == existingLine.getStartX() && newLine.getStartY() == existingLine.getStartY() &&

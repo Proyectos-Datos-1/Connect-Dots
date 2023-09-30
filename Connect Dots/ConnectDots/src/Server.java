@@ -286,12 +286,13 @@ public class Server extends Application {
                                     for (int i = 0; i < drawnLines.length; i++) {
                                         if (drawnLines[i] == null) {
                                             drawnLines[i] = data;
+                                            // Llama al metodo para verificar cuadrados
+                                            checkForSquare();
                                             // Pasa el turno al siguiente cliente
                                             currentPlayerIndex = (currentPlayerIndex + 1) % clients.length;
                                             break;
                                         }
                                     }
-                                    checkForSquare();
                                     // Si se lleno la cuadricula de lineas, devuelve puntuaciones
                                     int count = 0;
                                     for (GameData line : drawnLines) {

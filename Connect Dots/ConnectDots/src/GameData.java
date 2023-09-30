@@ -13,6 +13,7 @@ public class GameData {
     private int endY; // Coordenada Y de fin de una línea
     private String color; // Color asociado a los datos (utilizado en líneas y colores)
     private int score; // Puntuación asociada a los datos (utilizada en puntuaciones)
+    private int clientId; // Identificador del cliente que encontró el cuadrado
 
     /**
      * Crea y devuelve un objeto GameData que representa un punto en el juego.
@@ -60,6 +61,7 @@ public class GameData {
         this.endY = endY;
         this.color = color;
     }
+    
 
     /**
      * Crea y devuelve un objeto GameData que representa un color en el juego.
@@ -96,29 +98,24 @@ public class GameData {
      * @param y     Coordenada Y del punto superior izquierdo del cuadrado.
      * @return Objeto GameData que representa un cuadrado.
      */
-    public static GameData createSquareData(int x, int y) {
+    public static GameData createSquareData(int x, int y, String color) {
         GameData data = new GameData();
         data.type = "square";
         data.x = x;
         data.y = y;
+        data.color = color;
         return data;
     }
 
     /**
-     * Crea y devuelve un String GameData que representa una linea.
+     * Crea y devuelve un String GameData que representa un cuadrado.
      * 
-     * @return String GameData indicando coordenadas y color de la linea.
+     * @return String GameData indicando coordenadas y color del cuadrado.
      */
     @Override
     public String toString() {
-        if ("point".equals(type)) {
-            return "Point: (" + x + ", " + y + ")";
-        } else if ("line".equals(type)) {
-            return "Line: (" + startX + ", " + startY + ") to (" + endX + ", " + endY + "), Color: " + color;
-        } else if ("color".equals(type)) {
-            return "Color: " + color;
-        } else if ("score".equals(type)) {
-            return "Score: Color: " + color + ", Score: " + score;
+        if ("square".equals(type)) {
+            return "Square: (" + x + ", " + y + "), Color: " + color;
         } else {
             return "Unknown Data Type";
         }
@@ -221,5 +218,13 @@ public class GameData {
      */
     public void setScore(int score) {
         this.score = score;
+    }
+
+    public int getClientId() {
+        return clientId;
+    }
+    
+    public void setClientId(int clientId) {
+        this.clientId = clientId;
     }
 }

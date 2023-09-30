@@ -286,6 +286,8 @@ public class Server extends Application {
                                     for (int i = 0; i < drawnLines.length; i++) {
                                         if (drawnLines[i] == null) {
                                             drawnLines[i] = data;
+                                            // Pasa el turno al siguiente cliente
+                                            currentPlayerIndex = (currentPlayerIndex + 1) % clients.length;
                                             break;
                                         }
                                     }
@@ -305,8 +307,6 @@ public class Server extends Application {
                                 
                             }
                         }
-                        // Pasa el turno al siguiente cliente
-                        currentPlayerIndex = (currentPlayerIndex + 1) % clients.length;
                     }
                 }
 
@@ -357,7 +357,7 @@ public class Server extends Application {
                                 if (foundSquares[i] == null) {
                                     foundSquares[i] = GameData.createSquareData(row, col);
                                     squareFound = true;
-                                    clients[currentPlayerIndex].incrementScore(); // Aumenta el score
+                                    incrementScore(); // Aumenta el score
                                     sendScoreToClient(); // Envia el score a todos los clientes
                                     break;
                                 }
@@ -440,10 +440,11 @@ public class Server extends Application {
                 }
             }
             // Crea un mensaje con los resultados
-            StringBuilder message = new StringBuilder("Resultados:\n");
+            StringBuilder message = new StringBuilder("!JuegoTerminado!:\nResultados:\n");
             for (int i = 0; i < clients.length; i++) {
                 if (clients[i] != null) {
                     message.append("Puesto ").append(i + 1).append(": Cliente ").append(clients[i].getClientId()).append(" - Puntuación ").append(clients[i].getScore()).append("\n");
+                    
                 }
             }
             // Actualiza la etiqueta en la interfaz gráfica
